@@ -14,7 +14,7 @@ PYBIND11_MODULE(_core, m) {
         Pybind11 example plugin
         -----------------------
 
-        .. currentmodule:: scikit_build_example
+        .. currentmodule:: pointcloud_sax_reader
 
         .. autosummary::
            :toctree: _generate
