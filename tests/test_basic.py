@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import scikit_build_example as m
+import pointcloud_sax_reader as m
 
 
 def test_version():
