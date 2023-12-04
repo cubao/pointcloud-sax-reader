@@ -256,8 +256,8 @@ inline bool ReadPCDData(FILE* file, const PCDHeader& header,
                         const std::function<void(double, double, double)>& point_callback) {
   // The header should have been checked
   auto& field_x = header.fields[0];
-  auto& field_y = header.fields[0];
-  auto& field_z = header.fields[0];
+  auto& field_y = header.fields[1];
+  auto& field_z = header.fields[2];
   if (header.datatype == PCD_DATA_ASCII) {
     char line_buffer[DEFAULT_IO_BUFFER_SIZE];
     int idx = 0;
@@ -312,17 +312,17 @@ inline bool ReadPCDData(FILE* file, const PCDHeader& header,
       std::cerr << "[ReadPCDData] Uncompression failed." << std::endl;
       return false;
     }
-    for (const auto& field : header.fields) {
-      const char* base_ptr = buffer.get() + field.offset * header.points;
-      for (int i = 0; i < header.points; i++) {
-        double x = UnpackBinaryPCDElement(base_ptr + i * field_x.size * field_x.count, field_x.type,
-                                          field_x.size);
-        double y = UnpackBinaryPCDElement(base_ptr + i * field_y.size * field_y.count, field_y.type,
-                                          field_y.size);
-        double z = UnpackBinaryPCDElement(base_ptr + i * field_z.size * field_z.count, field_z.type,
-                                          field_z.size);
-        point_callback(x, y, z);
-      }
+    for (int i = 0; i < header.points; i++) {
+      double x = UnpackBinaryPCDElement(
+          buffer.get() + field_x.offset * header.points + i * field_x.size * field_x.count,
+          field_x.type, field_x.size);
+      double y = UnpackBinaryPCDElement(
+          buffer.get() + field_y.offset * header.points + i * field_y.size * field_y.count,
+          field_y.type, field_y.size);
+      double z = UnpackBinaryPCDElement(
+          buffer.get() + field_z.offset * header.points + i * field_z.size * field_z.count,
+          field_z.type, field_z.size);
+      point_callback(x, y, z);
     }
     return true;
   }
