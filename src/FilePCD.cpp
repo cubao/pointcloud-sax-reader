@@ -15,7 +15,9 @@
 #include <sstream>
 #include <vector>
 
+extern "C" {
 #include "liblzf/lzf.h"
+}
 #include "pointcloud_sax_reader.hpp"
 
 #define DEFAULT_IO_BUFFER_SIZE 1024

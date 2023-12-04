@@ -47,7 +47,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "config.h"
 #include "lzf_c_best.c"
 
 #ifdef HAVE_GETOPT_H

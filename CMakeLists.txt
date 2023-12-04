@@ -7,17 +7,26 @@ cmake_minimum_required(VERSION 3.15...3.27)
 project(
   ${SKBUILD_PROJECT_NAME}
   VERSION ${SKBUILD_PROJECT_VERSION}
-  LANGUAGES CXX)
+  LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Find the module development requirements (requires FindPython from 3.17 or
 # scikit-build-core's built-in backport)
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 
+add_library(lzf STATIC src/liblzf/lzf.c src/liblzf/lzf_c.c src/liblzf/lzf_d.c)
+set_source_files_properties(src/liblzf/lzf.c PROPERTIES LANGUAGE C)
+set_source_files_properties(src/liblzf/lzf_c.c PROPERTIES LANGUAGE C)
+set_source_files_properties(src/liblzf/lzf_d.c PROPERTIES LANGUAGE C)
+
 # Add a library using FindPython's tooling (pybind11 also provides a helper like
 # this)
 python_add_library(_core MODULE src/main.cpp src/FilePCD.cpp WITH_SOABI)
-target_link_libraries(_core PRIVATE pybind11::headers)
+target_link_libraries(_core PRIVATE pybind11::headers lzf)
 
 # This is passing in the version as a define just as an example
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
