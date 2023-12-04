@@ -247,7 +247,6 @@ inline double UnpackASCIIPCDElement(const char* data_ptr, const char type, const
 inline bool ReadPCDData(FILE* file, const PCDHeader& header,
                         const std::function<void(double, double, double)>& point_callback) {
   // The header should have been checked
-  std::vector<double> xs, ys, zs;
   if (header.datatype == PCD_DATA_ASCII) {
     char line_buffer[DEFAULT_IO_BUFFER_SIZE];
     int idx = 0;
@@ -273,9 +272,7 @@ inline bool ReadPCDData(FILE* file, const PCDHeader& header,
     }
     return true;
   } else if (header.datatype == PCD_DATA_BINARY) {
-    xs.resize(header.pointsize);
-    ys.resize(header.pointsize);
-    zs.resize(header.pointsize);
+    double x{0}, y{0}, z{0};
     std::unique_ptr<char[]> buffer(new char[header.pointsize]);
     for (int i = 0; i < header.points; i++) {
       if (fread(buffer.get(), header.pointsize, 1, file) != 1) {
@@ -284,14 +281,16 @@ inline bool ReadPCDData(FILE* file, const PCDHeader& header,
       }
       for (const auto& field : header.fields) {
         if (field.name == "x") {
-          xs[i] = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
+          x = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
         } else if (field.name == "y") {
-          ys[i] = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
+          y = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
         } else if (field.name == "z") {
-          zs[i] = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
+          z = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
         }
       }
+      point_callback(x, y, z);
     }
+    return true;
   } else if (header.datatype == PCD_DATA_BINARY_COMPRESSED) {
     std::uint32_t compressed_size;
     std::uint32_t uncompressed_size;
@@ -314,35 +313,30 @@ inline bool ReadPCDData(FILE* file, const PCDHeader& header,
       std::cerr << "[ReadPCDData] Uncompression failed." << std::endl;
       return false;
     }
-    std::vector<double> xs, ys, zs;
-    xs.resize(header.pointsize);
-    ys.resize(header.pointsize);
-    zs.resize(header.pointsize);
+    double x{0}, y{0}, z{0};
     for (const auto& field : header.fields) {
       const char* base_ptr = buffer.get() + field.offset * header.points;
       if (field.name == "x") {
         for (int i = 0; i < header.points; i++) {
-          xs[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
-                                         field.size);
+          x = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
+                                     field.size);
         }
       } else if (field.name == "y") {
         for (int i = 0; i < header.points; i++) {
-          ys[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
-                                         field.size);
+          y = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
+                                     field.size);
         }
       } else if (field.name == "z") {
         for (int i = 0; i < header.points; i++) {
-          zs[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
-                                         field.size);
+          z = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
+                                     field.size);
         }
       }
-    }
-    for (int i = 0; i < header.pointsize; ++i) {
-      point_callback(xs[i], ys[i], zs[i]);
+      point_callback(x, y, z);
     }
     return true;
   }
-  return true;
+  return false;
 }
 
 }  // namespace open3d
