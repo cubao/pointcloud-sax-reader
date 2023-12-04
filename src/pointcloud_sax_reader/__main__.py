@@ -20,6 +20,8 @@ if __name__ == "__main__":
         pcd = o3d.io.read_point_cloud(path)
         aabb = pcd.get_axis_aligned_bounding_box()
         secs = time.time() - tic
-        print(f"bbox: {aabb.min_bound.tolist()}, {aabb.max_bound.tolist()} (open3d, time: {secs:.6f})")  # noqa: T201
+        print(
+            f"bbox: {aabb.min_bound.tolist()}, {aabb.max_bound.tolist()} (open3d, time: {secs:.6f})"
+        )  # noqa: T201
     except ImportError:
         pass
