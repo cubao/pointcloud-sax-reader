@@ -58,7 +58,7 @@ inline std::vector<double> bbox3d_of_pointcloud(const std::string& path) {
           zmax = z;
         }
       })) {
-    return {xmin, ymin, zmax, xmax, ymax, zmax};
+    return {xmin, ymin, zmin, xmax, ymax, zmax};
   }
   return {};
 }
