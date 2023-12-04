@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "liblzf/lzf.h"
+#include "pointcloud_sax_reader.hpp"
 
 #define DEFAULT_IO_BUFFER_SIZE 1024
 #include <functional>
@@ -342,6 +343,10 @@ inline bool ReadPCDData(FILE* file, const PCDHeader& header,
   return true;
 }
 
+}  // namespace open3d
+
+namespace cubao {
+using namespace open3d;
 bool pointcloud_sax_read(const std::string& filename,
                          const std::function<void(double, double, double)>& point_callback) {
   PCDHeader header;
@@ -363,4 +368,5 @@ bool pointcloud_sax_read(const std::string& filename,
   fclose(file);
   return true;
 }
-}  // namespace open3d
+
+}  // namespace cubao
