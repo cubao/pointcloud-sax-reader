@@ -1,5 +1,7 @@
 #include <pybind11/pybind11.h>
 
+#include "pointcloud_sax_reader.hpp"
+
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
@@ -35,6 +37,9 @@ PYBIND11_MODULE(_core, m) {
 
         Some other explanation about the subtract function.
     )pbdoc");
+
+  m.def("bbox2d_of_pointcloud", &cubao::bbox2d_of_pointcloud, "path"_a);
+  m.def("bbox3d_of_pointcloud", &cubao::bbox3d_of_pointcloud, "path"_a);
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

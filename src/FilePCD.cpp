@@ -7,14 +7,15 @@
 // SPDX-License-Identifier: MIT
 // ----------------------------------------------------------------------------
 
-#include "liblzf/lzf.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <sstream>
-#include <vector>
 #include <iostream>
 #include <memory>
+#include <sstream>
+#include <vector>
+
+#include "liblzf/lzf.h"
 
 #define DEFAULT_IO_BUFFER_SIZE 1024
 #include <functional>
@@ -51,7 +52,7 @@ bool CheckHeader(PCDHeader& header) {
     return false;
   }
   if (header.fields.size() == 0 || header.pointsize <= 0) {
-    std::cerr << "[CheckHeader] PCD has no fields." << std::endl;;
+    std::cerr << "[CheckHeader] PCD has no fields." << std::endl;
     return false;
   }
   bool has_x = false;
@@ -75,22 +76,22 @@ bool CheckHeader(PCDHeader& header) {
 }
 
 inline std::vector<std::string> SplitString(const std::string& str,
-                                     const std::string& delimiters = " ",
-                                     bool trim_empty_str = true) {
-    std::vector<std::string> tokens;
-    std::string::size_type pos = 0, new_pos = 0, last_pos = 0;
-    while (pos != std::string::npos) {
-        pos = str.find_first_of(delimiters, last_pos);
-        new_pos = (pos == std::string::npos ? str.length() : pos);
-        if (new_pos != last_pos || !trim_empty_str) {
-            tokens.push_back(str.substr(last_pos, new_pos - last_pos));
-        }
-        last_pos = new_pos + 1;
+                                            const std::string& delimiters = " ",
+                                            bool trim_empty_str = true) {
+  std::vector<std::string> tokens;
+  std::string::size_type pos = 0, new_pos = 0, last_pos = 0;
+  while (pos != std::string::npos) {
+    pos = str.find_first_of(delimiters, last_pos);
+    new_pos = (pos == std::string::npos ? str.length() : pos);
+    if (new_pos != last_pos || !trim_empty_str) {
+      tokens.push_back(str.substr(last_pos, new_pos - last_pos));
     }
-    return tokens;
+    last_pos = new_pos + 1;
+  }
+  return tokens;
 }
 
-bool ReadPCDHeader(FILE* file, PCDHeader& header) {
+inline bool ReadPCDHeader(FILE* file, PCDHeader& header) {
   char line_buffer[DEFAULT_IO_BUFFER_SIZE];
   size_t specified_channel_count = 0;
 
@@ -183,7 +184,7 @@ bool ReadPCDHeader(FILE* file, PCDHeader& header) {
   return true;
 }
 
-double UnpackBinaryPCDElement(const char* data_ptr, const char type, const int size) {
+inline double UnpackBinaryPCDElement(const char* data_ptr, const char type, const int size) {
   if (type == 'I') {
     if (size == 1) {
       std::int8_t data;
@@ -228,7 +229,7 @@ double UnpackBinaryPCDElement(const char* data_ptr, const char type, const int s
   return 0.0;
 }
 
-double UnpackASCIIPCDElement(const char* data_ptr, const char type, const int size) {
+inline double UnpackASCIIPCDElement(const char* data_ptr, const char type, const int size) {
   char* end;
   if (type == 'I') {
     return (double)std::strtol(data_ptr, &end, 0);
@@ -240,7 +241,8 @@ double UnpackASCIIPCDElement(const char* data_ptr, const char type, const int si
   return 0.0;
 }
 
-bool ReadPCDData(FILE* file, const PCDHeader& header, const std::function<void(double,double,double)> &point_callback) {
+inline bool ReadPCDData(FILE* file, const PCDHeader& header,
+                        const std::function<void(double, double, double)>& point_callback) {
   // The header should have been checked
   std::vector<double> xs, ys, zs;
   if (header.datatype == PCD_DATA_ASCII) {
@@ -279,14 +281,12 @@ bool ReadPCDData(FILE* file, const PCDHeader& header, const std::function<void(d
       }
       for (const auto& field : header.fields) {
         if (field.name == "x") {
-          xs[i] =
-              UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
+          xs[i] = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
         } else if (field.name == "y") {
-          ys[i] =
-              UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
+          ys[i] = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
         } else if (field.name == "z") {
-          zs[i] =
-              UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
+          zs[i] = UnpackBinaryPCDElement(buffer.get() + field.offset, field.type, field.size);
+        }
       }
     }
   } else if (header.datatype == PCD_DATA_BINARY_COMPRESSED) {
@@ -306,7 +306,6 @@ bool ReadPCDData(FILE* file, const PCDHeader& header, const std::function<void(d
       return false;
     }
     std::unique_ptr<char[]> buffer(new char[uncompressed_size]);
-    reporter.Update(int(reporter_total * .2));
     if (lzf_decompress(buffer_compressed.get(), (unsigned int)compressed_size, buffer.get(),
                        (unsigned int)uncompressed_size) != uncompressed_size) {
       std::cerr << "[ReadPCDData] Uncompression failed." << std::endl;
@@ -320,33 +319,31 @@ bool ReadPCDData(FILE* file, const PCDHeader& header, const std::function<void(d
       const char* base_ptr = buffer.get() + field.offset * header.points;
       if (field.name == "x") {
         for (int i = 0; i < header.points; i++) {
-          xs[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count,
-                                                            field.type, field.size);
+          xs[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
+                                         field.size);
         }
       } else if (field.name == "y") {
         for (int i = 0; i < header.points; i++) {
-          ys[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count,
-                                                            field.type, field.size);
+          ys[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
+                                         field.size);
         }
       } else if (field.name == "z") {
         for (int i = 0; i < header.points; i++) {
-          zs[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count,
-                                                            field.type, field.size);
+          zs[i] = UnpackBinaryPCDElement(base_ptr + i * field.size * field.count, field.type,
+                                         field.size);
         }
       }
     }
-    for (int i = 0; i < header.pointsize;++i) {
+    for (int i = 0; i < header.pointsize; ++i) {
       point_callback(xs[i], ys[i], zs[i]);
-
     }
     return true;
   }
   return true;
 }
 
-}  // unnamed namespace
-
-bool ReadPointCloudFromPCD(const std::string& filename, const std::function<void(double,double,double)> &point_callback) {
+bool pointcloud_sax_read(const std::string& filename,
+                         const std::function<void(double, double, double)>& point_callback) {
   PCDHeader header;
   FILE* file = fopen(filename.c_str(), "rb");
   if (file == NULL) {
@@ -359,7 +356,7 @@ bool ReadPointCloudFromPCD(const std::string& filename, const std::function<void
     return false;
   }
   if (!ReadPCDData(file, header, point_callback)) {
-      std::cerr << "Read PCD failed: unable to read data." << std::endl;
+    std::cerr << "Read PCD failed: unable to read data." << std::endl;
     fclose(file);
     return false;
   }
