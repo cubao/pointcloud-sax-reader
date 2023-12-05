@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000-2010,2012 Marc Alexander Lehmann <schmorp@schmorp.de>
+ * Copyright (c) 2000-2010 Marc Alexander Lehmann <schmorp@schmorp.de>
  *
  * Redistribution and use in source and binary forms, with or without modifica-
  * tion, are permitted provided that the following conditions are met:
@@ -34,6 +34,11 @@
  * either the BSD or the GPL.
  */
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#endif
+
 #include "lzfP.h"
 
 #define HSIZE (1 << (HLOG))
@@ -47,7 +52,6 @@
 #ifndef FRST
 #define FRST(p) (((p[0]) << 8) | p[1])
 #define NEXT(v, p) (((v) << 8) | p[2])
-#if MULTIPLICATION_IS_SLOW
 #if ULTRA_FAST
 #define IDX(h) (((h >> (3 * 8 - HLOG)) - h) & (HSIZE - 1))
 #elif VERY_FAST
@@ -55,14 +59,15 @@
 #else
 #define IDX(h) ((((h ^ (h << 5)) >> (3 * 8 - HLOG)) - h * 5) & (HSIZE - 1))
 #endif
-#else
-/* this one was developed with sesse,
- * and is very similar to the one in snappy.
- * it does need a modern enough cpu with a fast multiplication.
+#endif
+/*
+ * IDX works because it is very similar to a multiplicative hash, e.g.
+ * ((h * 57321 >> (3*8 - HLOG)) & (HSIZE - 1))
+ * the latter is also quite fast on newer CPUs, and compresses similarly.
+ *
+ * the next one is also quite good, albeit slow ;)
+ * (int)(cos(h & 0xffffff) * 1e6)
  */
-#define IDX(h) (((h * 0x1e35a7bdU) >> (32 - HLOG - 8)) & (HSIZE - 1))
-#endif
-#endif
 
 #if 0
 /* original lzv-like hash function, much worse and thus slower */
@@ -70,6 +75,10 @@
 #define NEXT(v, p) ((v) << 5) ^ p[2]
 #define IDX(h) ((h) & (HSIZE - 1))
 #endif
+
+#define MAX_LIT (1 << 5)
+#define MAX_OFF (1 << 13)
+#define MAX_REF ((1 << 8) + (1 << 3))
 
 #if __GNUC__ >= 3
 #define expect(expr, value) __builtin_expect((expr), (value))
@@ -109,18 +118,13 @@ unsigned int lzf_compress(const void* const in_data, unsigned int in_len, void* 
 
   /* off requires a type wide enough to hold a general pointer difference.
    * ISO C doesn't have that (size_t might not be enough and ptrdiff_t only
-   * works for differences within a single object). We also assume that
+   * works for differences within a single object). We also assume that no
    * no bit pattern traps. Since the only platform that is both non-POSIX
    * and fails to support both assumptions is windows 64 bit, we make a
    * special workaround for it.
    */
 #if defined(_WIN32) && defined(_M_X64)
-/* workaround for missing POSIX compliance */
-#if __GNUC__
-  unsigned long long off;
-#else
-  unsigned __int64 off;
-#endif
+  unsigned _int64 off; /* workaround for missing POSIX compliance */
 #else
   unsigned long off;
 #endif
@@ -149,7 +153,7 @@ unsigned int lzf_compress(const void* const in_data, unsigned int in_len, void* 
 #if INIT_HTAB
         && ref < ip /* the next test will actually take care of this, but this is faster */
 #endif
-        && (off = ip - ref - 1) < LZF_MAX_OFF && ref > (u8*)in_data && ref[2] == ip[2]
+        && (off = ip - ref - 1) < MAX_OFF && ref > (u8*)in_data && ref[2] == ip[2]
 #if STRICT_ALIGN
         && ((ref[1] << 8) | ref[0]) == ((ip[1] << 8) | ip[0])
 #else
@@ -159,7 +163,7 @@ unsigned int lzf_compress(const void* const in_data, unsigned int in_len, void* 
       /* match found at *ref++ */
       unsigned int len = 2;
       unsigned int maxlen = in_end - ip - len;
-      maxlen = maxlen > LZF_MAX_REF ? LZF_MAX_REF : maxlen;
+      maxlen = maxlen > MAX_REF ? MAX_REF : maxlen;
 
       if (expect_false(op + 3 + 1 >= out_end)) /* first a faster conservative test */
         if (op - !lit + 3 + 1 >= out_end)      /* second the exact but rare test */
@@ -264,7 +268,7 @@ unsigned int lzf_compress(const void* const in_data, unsigned int in_len, void* 
       lit++;
       *op++ = *ip++;
 
-      if (expect_false(lit == LZF_MAX_LIT)) {
+      if (expect_false(lit == MAX_LIT)) {
         op[-lit - 1] = lit - 1; /* stop run */
         lit = 0;
         op++; /* start run */
@@ -279,7 +283,7 @@ unsigned int lzf_compress(const void* const in_data, unsigned int in_len, void* 
     lit++;
     *op++ = *ip++;
 
-    if (expect_false(lit == LZF_MAX_LIT)) {
+    if (expect_false(lit == MAX_LIT)) {
       op[-lit - 1] = lit - 1; /* stop run */
       lit = 0;
       op++; /* start run */
@@ -291,3 +295,7 @@ unsigned int lzf_compress(const void* const in_data, unsigned int in_len, void* 
 
   return op - (u8*)out_data;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

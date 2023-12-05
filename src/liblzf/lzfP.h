@@ -37,7 +37,7 @@
 #ifndef LZFP_h
 #define LZFP_h
 
-#define STANDALONE 1 /* at the moment, this is ok. */
+//#define STANDALONE 1 /* at the moment, this is ok. */
 
 #ifndef STANDALONE
 #include "lzf.h"
@@ -79,7 +79,12 @@
  * Unconditionally aligning does not cost very much, so do it if unsure
  */
 #ifndef STRICT_ALIGN
-#define STRICT_ALIGN !(defined(__i386) || defined(__amd64))
+// # define STRICT_ALIGN !(defined(__i386) || defined (__amd64))
+#if !(defined(__i386) || defined(__amd64))
+#define STRICT_ALIGN 1
+#else
+#define STRICT_ALIGN 0
+#endif
 #endif
 
 /*
@@ -88,7 +93,7 @@
  * deterministic/repeatable when the configuration otherwise is the same).
  */
 #ifndef INIT_HTAB
-#define INIT_HTAB 1
+#define INIT_HTAB 0
 #endif
 
 /*
@@ -122,42 +127,11 @@
 #endif
 
 /*
- * Whether the target CPU has a slow multiplication. This affects
- * the default hash function for the compressor, and enables a slightly
- * worse hash function that needs only shifts.
- */
-#ifndef MULTIPLICATION_IS_SLOW
-#define MULTIPLICATION_IS_SLOW 0
-#endif
-
-/*
- * If defined, then this data type will be used for storing offsets.
- * This can be useful if you want to use a huge hashtable, want to
- * conserve memory, or both, and your data fits into e.g. 64kb.
- * If instead you want to compress data > 4GB, then it's better to
- * to "#define LZF_USE_OFFSETS 0" instead.
- */
-/*#define LZF_HSLOT unsigned short*/
-
-/*
  * Whether to store pointers or offsets inside the hash table. On
  * 64 bit architetcures, pointers take up twice as much space,
  * and might also be slower. Default is to autodetect.
  */
-/*#define LZF_USE_OFFSETS autodetect */
-
-/*
- * Whether to optimise code for size, at the expense of speed. Use
- * this when you are extremely tight on memory, perhaps in combination
- * with AVOID_ERRNO 1 and CHECK_INPUT 0.
- */
-#ifndef OPTIMISE_SIZE
-#ifdef __OPTIMIZE_SIZE__
-#define OPTIMISE_SIZE 1
-#else
-#define OPTIMISE_SIZE 0
-#endif
-#endif
+/*#define LZF_USER_OFFSETS autodetect */
 
 /*****************************************************************************/
 /* nothing should be changed below */
@@ -171,12 +145,8 @@ using namespace std;
 #include <string.h>
 #endif
 
-#if ULTRA_FAST
-#undef VERY_FAST
-#endif
-
 #ifndef LZF_USE_OFFSETS
-#ifdef _WIN32
+#if defined(_WIN32)
 #define LZF_USE_OFFSETS defined(_M_X64)
 #else
 #if __cplusplus > 199711L
@@ -190,9 +160,6 @@ using namespace std;
 
 typedef unsigned char u8;
 
-#ifdef LZF_HSLOT
-#define LZF_HSLOT_BIAS ((const u8*)in_data)
-#else
 #if LZF_USE_OFFSETS
 #define LZF_HSLOT_BIAS ((const u8*)in_data)
 typedef unsigned int LZF_HSLOT;
@@ -200,8 +167,11 @@ typedef unsigned int LZF_HSLOT;
 #define LZF_HSLOT_BIAS 0
 typedef const u8* LZF_HSLOT;
 #endif
-#endif
 
+typedef LZF_HSLOT LZF_STATE[1 << (HLOG)];
+
+#if !STRICT_ALIGN
+/* for unaligned accesses we need a 16 bit datatype. */
 #if USHRT_MAX == 65535
 typedef unsigned short u16;
 #elif UINT_MAX == 65535
@@ -210,16 +180,10 @@ typedef unsigned int u16;
 #undef STRICT_ALIGN
 #define STRICT_ALIGN 1
 #endif
+#endif
 
-#define LZF_MAX_LIT (1 << 5)
-#define LZF_MAX_OFF (1 << 13)
-#define LZF_MAX_REF ((1 << 8) + (1 << 3))
-
-typedef LZF_HSLOT LZF_STATE[1 << (HLOG)];
-
-typedef struct {
-  const u8* first[1 << (6 + 8)]; /* most recent occurance of a match */
-  u16 prev[LZF_MAX_OFF];         /* how many bytes to go backwards for the next match */
-} LZF_STATE_BEST[1];
+#if ULTRA_FAST
+#undef VERY_FAST
+#endif
 
 #endif

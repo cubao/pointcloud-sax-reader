@@ -37,6 +37,10 @@
 #ifndef LZF_H
 #define LZF_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /***********************************************************************
 **
 **  lzf -- an extremely fast/free compression/decompression-method
@@ -46,12 +50,7 @@
 **
 ***********************************************************************/
 
-/* API version (major * 256 + minor)
- * major API version gets bumped on incompatible changes.
- * minor API version gets bumped on compatible changes.
- * 1.5 => 1.6: add LZF_MAX_COMPRESSED_SIZE
- */
-#define LZF_VERSION 0x0106
+#define LZF_VERSION 0x0105 /* 1.5, API version */
 
 /*
  * Compress in_len bytes stored at the memory block starting at
@@ -60,7 +59,7 @@
  *
  * If the output buffer is not large enough or any error occurs return 0,
  * otherwise return the number of bytes used, which might be considerably
- * more than in_len (but less than 1 + 104% of the original size), so it
+ * more than in_len (but less than 104% of the original size), so it
  * makes sense to always use out_len == in_len - 1), to ensure _some_
  * compression, and store the data uncompressed otherwise (with a flag, of
  * course.
@@ -82,17 +81,6 @@ unsigned int lzf_compress(const void* const in_data, unsigned int in_len, void* 
                           unsigned int out_len);
 
 /*
- * The maximum out_len that needs to be allocated to make sure
- * any input data can be compressed without overflowing the output
- * buffer, i.e. maximum out_len = LZF_MAX_COMPRESSED_SIZE (in_len).
- * This is useful if you don't want to bother with the case of
- * incompressible data and just want to provide a buffer that is
- * guaranteeed to be big enough.
- * This macro can be used at preprocessing time.
- */
-#define LZF_MAX_COMPRESSED_SIZE(n) ((((n)*33) >> 5) + 1)
-
-/*
  * Decompress data compressed with some version of the lzf_compress
  * function and stored at location in_data and length in_len. The result
  * will be stored at out_data up to a maximum of out_len characters.
@@ -109,5 +97,9 @@ unsigned int lzf_compress(const void* const in_data, unsigned int in_len, void* 
  */
 unsigned int lzf_decompress(const void* const in_data, unsigned int in_len, void* out_data,
                             unsigned int out_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

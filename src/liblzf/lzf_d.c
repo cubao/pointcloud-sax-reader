@@ -34,6 +34,11 @@
  * either the BSD or the GPL.
  */
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#endif
+
 #include "lzfP.h"
 
 #if AVOID_ERRNO
@@ -78,8 +83,6 @@ unsigned int lzf_decompress(const void* const in_data, unsigned int in_len, void
 
 #ifdef lzf_movsb
       lzf_movsb(op, ip, ctrl);
-#elif OPTIMISE_SIZE
-      while (ctrl--) *op++ = *ip++;
 #else
       switch (ctrl) {
         case 32: *op++ = *ip++;
@@ -153,11 +156,6 @@ unsigned int lzf_decompress(const void* const in_data, unsigned int in_len, void
 #ifdef lzf_movsb
       len += 2;
       lzf_movsb(op, ref, len);
-#elif OPTIMISE_SIZE
-      len += 2;
-
-      do *op++ = *ref++;
-      while (--len);
 #else
       switch (len) {
         default:
@@ -168,7 +166,7 @@ unsigned int lzf_decompress(const void* const in_data, unsigned int in_len, void
             memcpy(op, ref, len);
             op += len;
           } else {
-            /* overlapping, use octet by octet copying */
+            /* overlapping, use octte by octte copying */
             do *op++ = *ref++;
             while (--len);
           }
@@ -194,3 +192,7 @@ unsigned int lzf_decompress(const void* const in_data, unsigned int in_len, void
 
   return op - (u8*)out_data;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

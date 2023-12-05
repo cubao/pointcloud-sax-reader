@@ -5,7 +5,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pointcloud_sax_reader"
-version = "0.0.1"
+version = "0.1.0"
 description="read pointcloud fast"
 readme = "README.md"
 authors = [
