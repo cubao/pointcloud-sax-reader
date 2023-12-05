@@ -39,8 +39,7 @@ auto_build_type_and_compile_flags()
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 
-add_library(lzf STATIC src/liblzf/lzf.c src/liblzf/lzf_c.c src/liblzf/lzf_d.c)
-set_source_files_properties(src/liblzf/lzf.c PROPERTIES LANGUAGE C)
+add_library(lzf STATIC src/liblzf/lzf_c.c src/liblzf/lzf_d.c)
 set_source_files_properties(src/liblzf/lzf_c.c PROPERTIES LANGUAGE C)
 set_source_files_properties(src/liblzf/lzf_d.c PROPERTIES LANGUAGE C)
 
