@@ -63,6 +63,10 @@ python_sdist:
 python_test: pytest
 .PHONY: build
 
+restub:
+	pybind11-stubgen pointcloud_sax_reader._core -o stubs
+	cp stubs/pointcloud_sax_reader/_core.pyi src/pointcloud_sax_reader
+
 # conda create -y -n py36 python=3.6
 # conda create -y -n py37 python=3.7
 # conda create -y -n py38 python=3.8
