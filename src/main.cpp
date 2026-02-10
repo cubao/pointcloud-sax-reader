@@ -23,22 +23,9 @@ PYBIND11_MODULE(_core, m) {
         .. autosummary::
            :toctree: _generate
 
-           add
-           subtract
+           bbox2d_of_pointcloud
+           bbox3d_of_pointcloud
     )pbdoc";
-
-  m.def("add", &add, R"pbdoc(
-        Add two numbers
-
-        Some other explanation about the add function.
-    )pbdoc");
-
-  m.def(
-      "subtract", [](int i, int j) { return i - j; }, R"pbdoc(
-        Subtract two numbers
-
-        Some other explanation about the subtract function.
-    )pbdoc");
 
   m.def("bbox2d_of_pointcloud", &cubao::bbox2d_of_pointcloud, "path"_a,
         py::call_guard<py::gil_scoped_release>());
